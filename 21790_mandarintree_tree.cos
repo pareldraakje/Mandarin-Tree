@@ -46,6 +46,14 @@ scrp 2 4 21790 10
 * Set the initial tick
 * This will reset to a smaller value once the tree is fully grown.
 	tick 500
+	
+	* Set the base leaf graphics to use according to the season
+	doif sean lt 2
+		base 0
+	else
+		base 4
+	endi	
+	
 endm
 
 ** This script creates fruit.
