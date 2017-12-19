@@ -1,0 +1,65 @@
+**
+** This is a tree. It grows lovely mandarines!
+** Graphics by Linda
+** Coding by Pilla
+
+** Enjoy!
+
+**
+** CLASSIFIERS
+**
+
+** 2 4 21790 - The small mandarin tree
+** 2 8 21790 - The mandarin fruit
+** 2 10 21790 - The mandarin detritus
+
+**
+** Variables
+**
+
+** ov00 - max life
+** ov01 - current life
+
+
+**
+** CAOS2PRAY CHUNK COMES HERE
+**
+
+
+
+** INSTALL SCRIPT
+**
+** This script creates a tree.
+
+scrp 2 4 21790 10
+* Attributes: Can be clicked/hit. If there's fruit, it drops.
+	attr 4
+* Behaviour: Can be pushed (1) and hit (8). 
+* Hitting the plant can make it drop fruit.
+* It also suffers collisions (64).
+	bhvr 73
+* Set the permeability to 100, it won't fall through anything.
+	perm 100
+* Set the life variables: maximum lifespan and current life.
+	setv ov00 rand 100 180
+	setv ov01 0
+* Set the initial tick
+* This will reset to a smaller value once the tree is fully grown.
+	tick 500
+endm
+
+** This script creates fruit.
+scrp 2 8 21790 10
+* Attributes: Can be picked up by the mouse (2).
+* It also suffers collisions (64) and physics (128).
+	attr 194
+* Behaviour: can be eaten (16) and picked up (32).
+	bhvr 48
+* Permiability: Set to 90, shouldn't be dropping through many floors.
+	perm 90
+* Set the life variables: maximum and current life.
+	setv ov00 rand 12 18
+	setv ov01 0
+* Set the tick
+	tick 300
+endm
