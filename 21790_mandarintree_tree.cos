@@ -10,6 +10,7 @@
 **
 
 ** 2 4 21790 - The small mandarin tree
+** 2 7 21790 - The mandarin flower
 ** 2 8 21790 - The mandarin fruit
 ** 2 10 21790 - The mandarin detritus
 
@@ -19,6 +20,8 @@
 
 ** ov00 - max life
 ** ov01 - current life
+** ov02 - Mirroring
+** ov05 - Tree attached to (for flowers and fruit)
 
 
 **
@@ -26,12 +29,22 @@
 **
 
 
+** INJECTION SCRIPT
+**
 
-** INSTALL SCRIPT
+targ pntr
+setv va00 posx
+setv va01 posy
+new: simp 2 4 21790 "mandarintree_tree_linda" 16 0 rand 1000 2000
+mvto va00 va01
+
+
+** INSTALL SCRIPTS
 **
 ** This script creates a tree.
 
 scrp 2 4 21790 10
+	inst
 * Attributes: Can be clicked/hit. If there's fruit, it drops.
 	attr 4
 * Behaviour: Can be pushed (1) and hit (8). 
@@ -41,11 +54,13 @@ scrp 2 4 21790 10
 * Set the permeability to 100, it won't fall through anything.
 	perm 100
 * Set the life variables: maximum lifespan and current life.
-	setv ov00 rand 100 180
+	setv ov00 rand 60 90
 	setv ov01 0
+* Set the tree mirroring
+	setv ov02 rand 0 1
 * Set the initial tick
 * This will reset to a smaller value once the tree is fully grown.
-	tick rand 1400 1600
+	tick 700
 
 * Set the base leaf graphics to use according to the season
 	doif sean lt 2
@@ -53,14 +68,16 @@ scrp 2 4 21790 10
 	else
 		base 4
 	endi
+	pose 0
 
 * Randomly mirror the tree
-	mira rand 0 1
-
+	mira ov02
+	slow
 endm
 
 ** This script creates fruit.
 scrp 2 8 21790 10
+	inst
 * Attributes: Can be picked up by the mouse (2).
 * It also suffers collisions (64) and physics (128).
 	attr 194
@@ -68,9 +85,32 @@ scrp 2 8 21790 10
 	bhvr 48
 * Permiability: Set to 90, shouldn't be dropping through many floors.
 	perm 90
+* Physics: Normal physics I guess
+	accg 1.9
+	elas 30
+	fric 85
+	aero 1
 * Set the life variables: maximum and current life.
 	setv ov00 rand 12 18
 	setv ov01 0
+	seta ov05 null
+* Set the tick
+	tick 300
+	slow
+endm
+
+** This script creates a flower.
+scrp 2 7 21790 10
+* Attributes: Suffers collisions (64). Physics will be added later, when it drops from the tree.
+	attr 64
+* Behaviour: can be eaten (16) and picked up (32).
+	bhvr 48
+* Permiability: Set to 90, shouldn't be dropping through many floors.
+	perm 90
+* Set the life variables: maximum and current life.
+	setv ov00 rand 8 10
+	setv ov01 0
+	seta ov05 null
 * Set the tick
 	tick 300
 endm
@@ -82,12 +122,22 @@ endm
 ** The tree timer script
 ** This script makes the tree grow and spawn fruit.
 scrp 2 4 21790 9
+
+* Check if the season base is correct
+	setv va00 pose
+	doif sean eq 0 or sean eq 3
+		base 0
+		pose va00
+	else
+		base 4
+		pose va00
+	endi
 * Check if the tree is still growing
 	doif pose lt 3
 * If it is, grow! <3
-		setv va00 pose
 		addv va00 1
 		pose va00
+		mira ov02
 	else
 * If the tree is not growing, spawn some fruit!
 *** SPAWN
@@ -96,9 +146,9 @@ scrp 2 4 21790 9
 
 * Set the tick to a random value for spawning fruit
 	doif pose lt 3
-		tick rand 400 600
+		tick 700
 	else
-		tick rand 1400 1600
+		tick rand 400 600
 	endi
 * Increase the current life variable by one
 	addv ov01 1
@@ -120,3 +170,99 @@ scrp 2 8 21790 9
 		endi
 	endi
 endm
+
+** The flower timer script
+scrp 2 7 21790 9
+* If the flower isn't fully grown yet, grow
+	doif pose lt 3
+		setv va00 pose
+		addv va00 1
+		pose va00
+	else
+* Do not trigger when carried
+		doif carr ne null
+* Age the flower
+			addv ov01 1
+* If the life force is up, check if you're hanging on a tree.
+* If you're not hanging at a tree, die
+			doif ov05 eq null
+				doif ov01 ge ov00
+					kill ownr
+				endi
+			else
+* If you belong to a tree, either grow into fruit or fall off.
+* The chance of growing into fruit is 3/4 in summer and fall, and 1/3 in winter and spring.
+				doif sean eq 0 or sean eq 3
+					setv va00 rand 1 4
+					doif va00 gt 1
+						setv va01 1
+					endi
+				else
+					setv va00 rand 1 3
+					doif va00 gt 2
+						setv va01 1
+					endi
+				endi
+
+* Case: The flower falls off without turning into fruit
+				doif va01 ne 1
+* First set physics so it'll start falling
+					attr 192
+					accg 0.5
+					fric 95
+					elas 0
+					aero 5
+* Reset life
+					setv ov01 0
+* Disconnect from the tree
+					seta ov05 null
+* Case: the flower turns into fruit
+				else
+* Get the xpos ypos coordinates for the new fruit + plane
+					targ ownr
+					setv va02 posl
+					setv va03 post
+					setv va04 plne
+					addv va04 1
+* Create a new fruit
+					new: simp 2 8 21790 "mandarintree_flower_linda" 4 0 va04
+* Move the fruit in place if possible
+					doif tmvt va02 va03 eq 1
+						mvto va02 va03
+					else
+						kill targ
+					endi
+* Kill the flower
+					kill ownr
+				endi
+			endi
+		endi
+	endi
+endm
+
+
+** Push script
+
+scrp 2 4 21790 1
+endm
+scrp 2 4 21790 3
+endm
+
+
+
+
+**
+** Removal script
+**
+
+rscr
+
+enum 2 4 21790
+	kill targ
+next
+enum 2 7 21790
+	kill targ
+next
+enum 2 8 21790
+	kill targ
+next
