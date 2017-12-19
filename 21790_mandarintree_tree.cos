@@ -45,15 +45,18 @@ scrp 2 4 21790 10
 	setv ov01 0
 * Set the initial tick
 * This will reset to a smaller value once the tree is fully grown.
-	tick 500
-	
-	* Set the base leaf graphics to use according to the season
+	tick rand 1400 1600
+
+* Set the base leaf graphics to use according to the season
 	doif sean lt 2
 		base 0
 	else
 		base 4
-	endi	
-	
+	endi
+
+* Randomly mirror the tree
+	mira rand 0 1
+
 endm
 
 ** This script creates fruit.
@@ -70,4 +73,50 @@ scrp 2 8 21790 10
 	setv ov01 0
 * Set the tick
 	tick 300
+endm
+
+**
+** TIMER SCRIPTS
+**
+
+** The tree timer script
+** This script makes the tree grow and spawn fruit.
+scrp 2 4 21790 9
+* Check if the tree is still growing
+	doif pose lt 3
+* If it is, grow! <3
+		setv va00 pose
+		addv va00 1
+		pose va00
+	else
+* If the tree is not growing, spawn some fruit!
+*** SPAWN
+*** SPAWN
+	endi
+
+* Set the tick to a random value for spawning fruit
+	doif pose lt 3
+		tick rand 400 600
+	else
+		tick rand 1400 1600
+	endi
+* Increase the current life variable by one
+	addv ov01 1
+* If life's up, die
+	doif ov01 ge ov00
+		kill ownr
+	endi
+endm
+
+** The fruit timer script
+scrp 2 8 21790 9
+* Do not trigger when carried
+	doif carr ne null
+* Age the fruit
+		addv ov01 1
+* If life's up, die.
+		doif ov01 ge ov00
+			kill ownr
+		endi
+	endi
 endm
