@@ -36,6 +36,12 @@ targ pntr
 setv va00 posx
 setv va01 posy
 new: simp 2 4 21790 "mandarintree_tree_linda" 16 0 rand 1000 2000
+setv va02 wdth
+divv va02 2
+setv va03 hght
+divv va03 2
+subv va00 va02
+subv va01 va03
 mvto va00 va01
 
 
@@ -45,14 +51,21 @@ mvto va00 va01
 
 scrp 2 4 21790 10
 	inst
-* Attributes: Can be clicked/hit. If there's fruit, it drops.
-	attr 4
+* Attributes: Can be activated (4). If there's fruit, it drops.
+* Can be picked up by the mouse (2).
+* It also suffers collisions (64) and physics (128).
+	attr 198
 * Behaviour: Can be pushed (1) and hit (8). 
 * Hitting the plant can make it drop fruit.
 * It also suffers collisions (64).
 	bhvr 73
 * Set the permeability to 100, it won't fall through anything.
 	perm 100
+* Physics: Heavy
+	accg 5
+	elas 0
+	fric 100
+	aero 1
 * Set the life variables: maximum lifespan and current life.
 	setv ov00 rand 60 90
 	setv ov01 0
@@ -69,6 +82,9 @@ scrp 2 4 21790 10
 		base 4
 	endi
 	pose 0
+
+* Set the handle for the adult tree (not needed I think, maybe for gardenbox?)
+	puhl -1 91 60
 
 * Randomly mirror the tree
 	mira ov02
@@ -87,7 +103,7 @@ scrp 2 8 21790 10
 	perm 90
 * Physics: Normal physics I guess
 	accg 1.9
-	elas 30
+	elas 40
 	fric 85
 	aero 1
 * Set the life variables: maximum and current life.
@@ -135,13 +151,45 @@ scrp 2 4 21790 9
 * Check if the tree is still growing
 	doif pose lt 3
 * If it is, grow! <3
+		setv va00 pose
 		addv va00 1
 		pose va00
 		mira ov02
 	else
 * If the tree is not growing, spawn some fruit!
+* First count the flowers already present
+		setv va00 0
+		etch 2 7 2190
+			doif ov05 eq ownr
+				addv va00 1
+			endi
+		next
+* If there are less than 3 flowers around, create a new flower on the tree.
+		doif va00 lt 3
+
+			targ ownr
+* spot where flower will appear: va00 posx va01 posy
+			setv va01 posl
+			addv va01 44
+			addv va01 rand 0 73
+			setv va02 post
+			addv va02 60
+			addv va02 rand 0 38
+
+* plane
+			setv va05 plne
+			addv va05 rand 5 1000
+
+* Create fruit
+			new: simp 2 8 21790 "mandarintree_flower_linda" 5 0 va05
+			doif tmvt va01 va02 eq 1
+				mvto va01 va02
+			else
+				kill targ
+			endi
 *** SPAWN
 *** SPAWN
+		endi
 	endi
 
 * Set the tick to a random value for spawning fruit
