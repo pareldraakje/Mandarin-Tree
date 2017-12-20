@@ -71,7 +71,7 @@ scrp 2 4 21790 10
 	setv ov01 0
 * Set the tree mirroring
 	setv ov02 rand 0 1
-* Set the initial tick
+* Set the initial tick - 35 seconds
 * This will reset to a smaller value once the tree is fully grown.
 	tick 700
 
@@ -110,7 +110,7 @@ scrp 2 8 21790 10
 	setv ov00 rand 12 18
 	setv ov01 0
 	seta ov05 null
-* Set the tick
+* Set the tick - 15 seconds
 	tick 300
 	slow
 endm
@@ -127,7 +127,7 @@ scrp 2 7 21790 10
 	setv ov00 rand 8 10
 	setv ov01 0
 	seta ov05 null
-* Set the tick
+* Set the tick - 15 seconds
 	tick 300
 endm
 
@@ -192,7 +192,7 @@ scrp 2 4 21790 9
 		endi
 	endi
 
-* Set the tick to a random value for spawning fruit
+* Set the tick to a random value for spawning fruit - 35 seconds, or a random value between 20 and 30 seconds
 	doif pose lt 3
 		tick 700
 	else
@@ -293,6 +293,8 @@ endm
 
 scrp 2 4 21790 1
 endm
+
+** Hit script
 scrp 2 4 21790 3
 endm
 
