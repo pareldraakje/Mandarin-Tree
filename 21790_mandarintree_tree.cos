@@ -84,10 +84,14 @@ scrp 2 4 21790 10
 	tick 700
 
 * Set the base leaf graphics to use according to the season
-	doif sean lt 2
+	doif sean eq 0
 		base 0
-	else
+	elif sean eq 1
 		base 4
+	elif sean eq 2
+		base 8
+	else
+		base 12
 	endi
 	pose 0
 
@@ -133,10 +137,10 @@ scrp 2 7 21790 10
 * Permiability: Set to 90, shouldn't be dropping through many floors.
 	perm 90
 * Set the life variables: maximum and current life.
-	setv ov00 rand 8 10
+	setv ov00 rand 12 15
 	setv ov01 0
-* Set the tick - 15 seconds
-	tick 300
+* Set the tick - 15 to 25 seconds
+	tick rand 300 500
 	setv ov02 rand 0 1
 	mira ov02
 	slow
@@ -152,13 +156,24 @@ scrp 2 4 21790 9
 
 * Check if the season base is correct
 	setv va00 pose
-	doif sean eq 0 or sean eq 3
+	doif sean eq 0
 		base 0
-		pose va00
-	else
+* Set the tick to a random value between 40 and 55 seconds
+		tick rand 800 1100
+	elif sean eq 1
 		base 4
-		pose va00
+* Set the tick to a random value between 30 and 45 seconds
+		tick rand 600 900
+	elif sean eq 2
+		base 8
+* Set the tick to a random value between 20 and 45 seconds
+		tick rand 400 900
+	else
+		base 12
+* Set the tick to a random value between 50 and 90 seconds
+		tick rand 1000 1800
 	endi
+	pose va00
 * Check if the tree is still growing
 	doif pose lt 3
 * If it is, grow! <3
@@ -202,8 +217,6 @@ scrp 2 4 21790 9
 		endi
 	endi
 	targ ownr
-* Set the tick to a random value between 20 and 30 seconds
-	tick rand 400 600
 * Increase the current life variable by one
 	addv ov01 1
 * If life's up, die
@@ -227,18 +240,23 @@ endm
 
 ** The flower timer script
 scrp 2 7 21790 9
+	tick rand 700 1100
 * Age the flower
 	addv ov01 1
 * Check if the flower is going to be fruiting or flowering
 	doif ov03 eq 0
 		setv va01 0
 * If ov03 isn't set, let whether it fruits depend on the season.
-* The chance of growing into fruit is 3/4 in summer and fall, and 2/4 in winter and spring.
-		doif sean eq 0 or sean eq 3
+* If ov03 is 1, the flower will fall off as a flower.
+* If ov03 is 2, the flower will grow until it becomes fruit.
+* The chance of a flower growing into fruit is 3/4 in summer and fall, 2/4 in spring and 1 in winter.
+		doif sean eq 0
 			setv va00 rand 1 4
 			doif va00 gt 1
 				setv va01 1
 			endi
+		elif sean eq 4
+			setv va01 1
 		else
 			setv va00 rand 1 4
 			doif va00 gt 2
@@ -257,34 +275,48 @@ scrp 2 7 21790 9
 	doif ov05 eq null
 		doif ov01 ge ov00
 			kill ownr
+			stop
 		endi
 	endi
 
 * If the flower isn't fully grown yet, grow
-	doif pose lt 2
-		setv va00 pose
-		addv va00 1
-		pose va00
-		mira ov02
+	doif pose lt 1
+		doif sean eq 3
+			pose 3
+			setv ov03 2
+		else
+			setv va00 pose
+			addv va00 1
+			pose va00
+			mira ov02
+		endi
 	else
 * If flowering
 * If you belong to a tree, either grow into fruit or fall off.
 * Case: The flower falls off without turning into fruit
 		doif ov03 eq 1
-* First set physics so it'll start falling
-			attr 194
-			accg 0.5
-			fric 95
-			elas 0
-			aero 5
-* Reset life
-			setv ov01 0
-* Disconnect from the tree
-			seta ov05 null
-			doif tmvt posx posy ne 0
-				mvsf posx posy
+			doif pose lt 2
+				setv va00 pose
+				addv va00 1
+				pose va00
+				mira ov02
 			else
-				kill targ
+* First set physics so it'll start falling
+				pose 2
+				attr 194
+				accg 0.5
+				fric 95
+				elas 0
+				aero 5
+* Reset life
+				setv ov01 0
+* Disconnect from the tree
+				seta ov05 null
+				doif tmvt posx posy ne 0
+					mvsf posx posy
+				else
+					kill targ
+				endi
 			endi
 * Case: the flower turns into fruit
 		else
@@ -318,6 +350,34 @@ endm
 ** Push script
 
 scrp 2 4 21790 1
+	targ pntr
+	anim [4 5 5 0]
+	targ ownr
+	velo 0 -5
+** All full grown flowers will be dropped.
+	inst
+	seta va00 targ
+	esee 2 7 21790
+		doif targ ne null
+			doif ov05 eq va00
+				doif pose eq 2
+					setv ov03 1
+
+* First set physics so it'll start falling
+					attr 194
+					accg 0.5
+					fric 95
+					elas 0
+					aero 5
+* Reset life
+					setv ov01 0
+* Disconnect from the tree
+					seta ov05 null
+				endi
+			endi
+		endi
+	next
+	slow
 endm
 
 ** Hit script
@@ -325,16 +385,16 @@ scrp 2 4 21790 3
 endm
 
 ** Pickup script
-** All full grown flowers will be dropped, and ungrown flowers will be killed.
 scrp 2 4 21790 4
+** All full grown flowers will be dropped, and ungrown flowers will be killed.
 	inst
 	seta va00 targ
 	esee 2 7 21790
 		doif targ ne null
 			doif ov05 eq va00
-				setv ov03 1
 				doif pose eq 2
 * First set physics so it'll start falling
+					setv ov03 1
 					attr 194
 					accg 0.5
 					fric 95
