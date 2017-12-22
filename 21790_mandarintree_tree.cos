@@ -23,7 +23,12 @@
 ** ov02 - Mirroring
 ** ov03 - State of flower: 0 - not set, 1 - flowering, 2 - fruiting. Defaults to fruiting.
 ** ov05 - Tree attached to (for flowers and fruit)
-
+** ov06 - first flower spot posx
+** ov07 - first flower spot posy
+** ov08 - second flower spot posx
+** ov09 - second flower spot posy
+** ov10 - third flower spot posx
+** ov11 - third flower spot posy
 
 **
 ** CAOS2PRAY CHUNK COMES HERE
@@ -110,7 +115,7 @@ scrp 2 8 21790 10
 	fric 85
 	aero 1
 * Set the life variables: maximum and current life.
-	setv ov00 rand 12 18
+	setv ov00 rand 4 8
 	setv ov01 0
 	seta ov05 null
 * Set the tick - 15 seconds
@@ -120,6 +125,7 @@ endm
 
 ** This script creates a flower.
 scrp 2 7 21790 10
+	inst
 * Attributes: It's floatable (32). Physics will be added later, when it drops from the tree.
 	attr 32
 * Behaviour: can be eaten (16) and picked up (32).
@@ -131,6 +137,9 @@ scrp 2 7 21790 10
 	setv ov01 0
 * Set the tick - 15 seconds
 	tick 300
+	setv ov02 rand 0 1
+	mira ov02
+	slow
 endm
 
 **
@@ -206,7 +215,7 @@ endm
 ** The fruit timer script
 scrp 2 8 21790 9
 * Do not trigger when carried
-	doif carr ne null
+	doif carr eq null
 * Age the fruit
 		addv ov01 1
 * If life's up, die.
@@ -256,44 +265,50 @@ scrp 2 7 21790 9
 		setv va00 pose
 		addv va00 1
 		pose va00
+		mira ov02
 	else
 * If flowering
-		doif ov03 eq 1
-* Do not trigger when carried
-			doif carr eq null
-
 * If you belong to a tree, either grow into fruit or fall off.
 * Case: The flower falls off without turning into fruit
-				doif ov03 eq 1
+		doif ov03 eq 1
 * First set physics so it'll start falling
-					attr 194
-					accg 0.5
-					fric 95
-					elas 0
-					aero 5
+			attr 194
+			accg 0.5
+			fric 95
+			elas 0
+			aero 5
 * Reset life
-					setv ov01 0
+			setv ov01 0
 * Disconnect from the tree
-					seta ov05 null
+			seta ov05 null
+			doif tmvt posx posy ne 0
+				mvsf posx posy
+			else
+				kill targ
+			endi
 * Case: the flower turns into fruit
-				else
+		else
+			doif pose lt 4
+				setv va00 pose
+				addv va00 1
+				pose va00
+			else
 * Get the xpos ypos coordinates for the new fruit + plane
-					targ ownr
-					setv va02 posl
-					setv va03 post
-					setv va04 plne
-					addv va04 1
+				targ ownr
+				setv va02 posl
+				setv va03 post
+				setv va04 plne
+				addv va04 1
 * Create a new fruit
-					new: simp 2 8 21790 "mandarintree_fruit_linda" 4 0 va04
+				new: simp 2 8 21790 "mandarintree_fruit_linda" 4 0 va04
 * Move the fruit in place if possible
-					doif tmvt va02 va03 eq 1
-						mvto va02 va03
-					else
-						kill targ
-					endi
-* Kill the flower
-					kill ownr
+				doif tmvt va02 va03 eq 1
+					mvto va02 va03
+				else
+					kill targ
 				endi
+* Kill the flower
+				kill ownr
 			endi
 		endi
 	endi
@@ -312,11 +327,12 @@ endm
 ** Pickup script
 ** All full grown flowers will be dropped, and ungrown flowers will be killed.
 scrp 2 4 21790 4
-	seta va00 targ
 	inst
+	seta va00 targ
 	esee 2 7 21790
 		doif targ ne null
 			doif ov05 eq va00
+				setv ov03 1
 				doif pose eq 2
 * First set physics so it'll start falling
 					attr 194
@@ -334,6 +350,7 @@ scrp 2 4 21790 4
 			endi
 		endi
 	next
+	slow
 endm
 
 ** Eat script
