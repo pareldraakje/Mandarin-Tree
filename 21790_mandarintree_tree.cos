@@ -21,6 +21,7 @@
 ** ov00 - max life
 ** ov01 - current life
 ** ov02 - Mirroring
+** ov03 - State of flower: 0 - not set, 1 - flowering, 2 - fruiting. Defaults to fruiting.
 ** ov05 - Tree attached to (for flowers and fruit)
 
 
@@ -71,6 +72,8 @@ scrp 2 4 21790 10
 	setv ov01 0
 * Set the tree mirroring
 	setv ov02 rand 0 1
+* Set the tree range, it will search in this range for attached flowers
+	rnge 200
 * Set the initial tick - 35 seconds
 * This will reset to a smaller value once the tree is fully grown.
 	tick 700
@@ -117,8 +120,8 @@ endm
 
 ** This script creates a flower.
 scrp 2 7 21790 10
-* Attributes: Suffers collisions (64). Physics will be added later, when it drops from the tree.
-	attr 64
+* Attributes: It's floatable (32). Physics will be added later, when it drops from the tree.
+	attr 32
 * Behaviour: can be eaten (16) and picked up (32).
 	bhvr 48
 * Permiability: Set to 90, shouldn't be dropping through many floors.
@@ -126,7 +129,6 @@ scrp 2 7 21790 10
 * Set the life variables: maximum and current life.
 	setv ov00 rand 8 10
 	setv ov01 0
-	seta ov05 null
 * Set the tick - 15 seconds
 	tick 300
 endm
@@ -158,46 +160,41 @@ scrp 2 4 21790 9
 	else
 * If the tree is not growing, spawn some fruit!
 * First count the flowers already present
+		targ ownr
+		seta va04 ownr
 		setv va00 0
-		etch 2 7 2190
-			doif ov05 eq ownr
-				addv va00 1
+		inst
+		esee 2 7 21790
+			doif targ ne null
+				doif ov05 eq va04
+					addv va00 1
+				endi
 			endi
 		next
+		slow
 * If there are less than 3 flowers around, create a new flower on the tree.
 		doif va00 lt 3
 
 			targ ownr
 * spot where flower will appear: va00 posx va01 posy
-			setv va01 posl
-			addv va01 44
+			setv va01 35
 			addv va01 rand 0 73
-			setv va02 post
-			addv va02 60
+			setv va02 50
 			addv va02 rand 0 38
-
 * plane
 			setv va05 plne
-			addv va05 rand 5 1000
+			addv va05 rand 10 50
 
-* Create fruit
-			new: simp 2 8 21790 "mandarintree_flower_linda" 5 0 va05
-			doif tmvt va01 va02 eq 1
-				mvto va01 va02
-			else
-				kill targ
-			endi
-*** SPAWN
-*** SPAWN
+* Create flower
+			new: simp 2 7 21790 "mandarintree_flower_linda" 5 0 va05
+			seta ov05 va04
+			frel va04
+			flto va01 va02
 		endi
 	endi
-
-* Set the tick to a random value for spawning fruit - 35 seconds, or a random value between 20 and 30 seconds
-	doif pose lt 3
-		tick 700
-	else
-		tick rand 400 600
-	endi
+	targ ownr
+* Set the tick to a random value between 20 and 30 seconds
+	tick rand 400 600
 * Increase the current life variable by one
 	addv ov01 1
 * If life's up, die
@@ -221,41 +218,55 @@ endm
 
 ** The flower timer script
 scrp 2 7 21790 9
+* Age the flower
+	addv ov01 1
+* Check if the flower is going to be fruiting or flowering
+	doif ov03 eq 0
+		setv va01 0
+* If ov03 isn't set, let whether it fruits depend on the season.
+* The chance of growing into fruit is 3/4 in summer and fall, and 2/4 in winter and spring.
+		doif sean eq 0 or sean eq 3
+			setv va00 rand 1 4
+			doif va00 gt 1
+				setv va01 1
+			endi
+		else
+			setv va00 rand 1 4
+			doif va00 gt 2
+				setv va01 1
+			endi
+		endi
+		doif va01 eq 1
+			setv ov03 2
+		else
+			setv ov03 1
+		endi
+	endi
+
+* If the life force is up, check if you're hanging on a tree.
+* If you're not hanging on a tree, die
+	doif ov05 eq null
+		doif ov01 ge ov00
+			kill ownr
+		endi
+	endi
+
 * If the flower isn't fully grown yet, grow
-	doif pose lt 3
+	doif pose lt 2
 		setv va00 pose
 		addv va00 1
 		pose va00
 	else
+* If flowering
+		doif ov03 eq 1
 * Do not trigger when carried
-		doif carr ne null
-* Age the flower
-			addv ov01 1
-* If the life force is up, check if you're hanging on a tree.
-* If you're not hanging at a tree, die
-			doif ov05 eq null
-				doif ov01 ge ov00
-					kill ownr
-				endi
-			else
-* If you belong to a tree, either grow into fruit or fall off.
-* The chance of growing into fruit is 3/4 in summer and fall, and 1/3 in winter and spring.
-				doif sean eq 0 or sean eq 3
-					setv va00 rand 1 4
-					doif va00 gt 1
-						setv va01 1
-					endi
-				else
-					setv va00 rand 1 3
-					doif va00 gt 2
-						setv va01 1
-					endi
-				endi
+			doif carr eq null
 
+* If you belong to a tree, either grow into fruit or fall off.
 * Case: The flower falls off without turning into fruit
-				doif va01 ne 1
+				doif ov03 eq 1
 * First set physics so it'll start falling
-					attr 192
+					attr 194
 					accg 0.5
 					fric 95
 					elas 0
@@ -273,7 +284,7 @@ scrp 2 7 21790 9
 					setv va04 plne
 					addv va04 1
 * Create a new fruit
-					new: simp 2 8 21790 "mandarintree_flower_linda" 4 0 va04
+					new: simp 2 8 21790 "mandarintree_fruit_linda" 4 0 va04
 * Move the fruit in place if possible
 					doif tmvt va02 va03 eq 1
 						mvto va02 va03
@@ -296,6 +307,39 @@ endm
 
 ** Hit script
 scrp 2 4 21790 3
+endm
+
+** Pickup script
+** All full grown flowers will be dropped, and ungrown flowers will be killed.
+scrp 2 4 21790 4
+	seta va00 targ
+	inst
+	esee 2 7 21790
+		doif targ ne null
+			doif ov05 eq va00
+				doif pose eq 2
+* First set physics so it'll start falling
+					attr 194
+					accg 0.5
+					fric 95
+					elas 0
+					aero 5
+* Reset life
+					setv ov01 0
+* Disconnect from the tree
+					seta ov05 null
+				else
+					kill targ
+				endi
+			endi
+		endi
+	next
+endm
+
+** Eat script
+scrp 2 7 21790 12
+endm
+scrp 2 8 21790 12
 endm
 
 
